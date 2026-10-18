@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Debatekeeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root {
+  --bg: #f2f2ef; --panel: #ffffff; --text: #1b1c1d; --muted: #565a5f; --line: #d6d7d3;
+  --bar: #202326; --bar-text: #f2f2f2; --accent: #0b57d0; --on-accent: #ffffff;
+  --danger: #b3261e; --field: #ffffff;
+  --ui: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --num: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121314; --panel: #1c1e20; --text: #ececec; --muted: #a3a7ac; --line: #32353a;
+    --bar: #0c0d0e; --accent: #8ab4ff; --on-accent: #0a1a33; --danger: #ff8a80; --field: #16181a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121314; --panel: #1c1e20; --text: #ececec; --muted: #a3a7ac; --line: #32353a;
+  --bar: #0c0d0e; --accent: #8ab4ff; --on-accent: #0a1a33; --danger: #ff8a80; --field: #16181a;
+  color-scheme: dark;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); height: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--text);
+  font-family: var(--ui); font-size: 16px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+button, input, select, textarea { font: inherit; color: inherit; touch-action: manipulation; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.stage :focus-visible, .bar :focus-visible { outline-color: #ffffff; }
+
+#app { height: 100%; display: flex; flex-direction: column; }
+
+.bar {
+  flex: none; display: flex; align-items: center; gap: 4px;
+  background: var(--bar); color: var(--bar-text);
+  padding: 6px 8px 6px 14px; min-height: 52px;
+}
+.bar h1 {
+  flex: 1; min-width: 0; margin: 0; font-family: var(--ui); font-weight: 600;
+  font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bar nav { display: flex; gap: 2px; }
+.barbtn {
+  background: transparent; border: 0; color: var(--bar-text); padding: 10px 10px;
+  border-radius: 6px; font-weight: 500; min-height: 44px;
+}
+.barbtn:hover { background: rgba(255,255,255,.12); }
+.barbtn[aria-current="page"] { background: rgba(255,255,255,.18); }
+
+main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.view { flex: 1; min-height: 0; }
+
+.stage {
+  display: flex; flex-direction: column; color: #fff; background: #000;
+  padding: clamp(10px, 2.5vh, 26px) clamp(12px, 4vw, 40px);
+  transition: background-color .25s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stage-inner {
+  width: 100%; max-width: 640px; margin: 0 auto; flex: 1; min-height: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.speech-name { font-family: var(--num); font-weight: 600; font-size: clamp(1.8rem, 6.5vw, 2.8rem); line-height: 1.1; }
+.speech-pos { margin-top: 2px; opacity: .8; font-size: 0.95rem; }
+.stage-mid { text-align: center; padding: 4px 0; }
+.time {
+  font-family: var(--num); font-weight: 600; font-variant-numeric: tabular-nums;
+  font-size: clamp(5rem, min(30vw, 28vh), 15rem); line-height: 1; letter-spacing: 0;
+}
+.time.over { color: #ff8f86; }
+.time-sub { font-size: 1.1rem; opacity: .85; margin-top: 2px; }
+.period-text { min-height: 2.2em; margin-top: 6px; font-family: var(--num); font-weight: 600; font-size: clamp(1.6rem, 5.5vw, 2.3rem); }
+.poi {
+  min-width: 132px; min-height: 54px; padding: 8px 22px; border-radius: 999px;
+  background: transparent; color: #fff; border: 2px solid #fff;
+  font-family: var(--num); font-weight: 600; font-size: 1.5rem; margin: 4px auto 0;
+}
+.poi.running { background: #fff; color: #000; }
+.poi.done { background: #2d6cdf; border-color: #2d6cdf; color: #fff; }
+.bells-line, .next-line { text-align: center; opacity: .85; font-size: .95rem; }
+.next-line { margin-bottom: 8px; }
+.ctl-main { display: flex; flex-direction: column; gap: 10px; }
+.ctl-sub { display: flex; gap: 6px; margin-top: 8px; justify-content: center; }
+.ctl-sub .sbtn { flex: 1; max-width: 200px; }
+.sbtn {
+  min-height: 48px; border-radius: 10px; border: 2px solid rgba(255,255,255,.55);
+  background: rgba(255,255,255,.1); color: #fff; font-weight: 500; padding: 4px 8px; font-size: 0.85rem;
+}
+.sbtn:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.sbtn:disabled { opacity: .35; cursor: default; }
+.sbtn.go {
+  min-height: 64px; background: #fff; color: #000; border-color: #fff;
+  font-family: var(--num); font-weight: 700; font-size: 1.9rem; width: 100%;
+}
+.sbtn.go:hover { background: #e8e8e8; }
+
+.page { overflow-y: auto; padding: 18px 16px 32px; }
+.page-inner { max-width: 720px; margin: 0 auto; }
+.page h2 { font-family: var(--num); font-size: 1.9rem; font-weight: 600; margin: 0 0 6px; }
+.page h3 { font-size: 1.05rem; margin: 26px 0 6px; font-weight: 600; }
+.lead { color: var(--muted); margin: 0 0 14px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 8px; }
+.btn {
+  min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1.5px solid var(--line);
+  background: var(--panel); font-weight: 500;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.link { background: none; border: 0; color: var(--accent); padding: 8px 4px; min-height: 40px; text-decoration: underline; }
+.link.danger { color: var(--danger); }
+
+.styles { list-style: none; margin: 8px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.styles > li { border-bottom: 1px solid var(--line); border-left: 5px solid transparent; padding: 4px 0 6px 12px; }
+.styles > li.sel { border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.style-main { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 10px 6px 4px 0; }
+.style-name { display: block; font-weight: 600; font-size: 1.15rem; }
+.style-meta, .style-used, .style-desc { display: block; color: var(--muted); font-size: .94rem; }
+.style-desc { color: var(--text); margin-top: 3px; }
+.style-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.badge { font-size: .85rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--accent); color: var(--accent); }
+.badge.plain { border-color: var(--line); color: var(--muted); }
+.style-detail { padding: 6px 8px 12px 0; font-size: .95rem; overflow-x: auto; }
+.style-detail table { border-collapse: collapse; min-width: 100%; margin: 6px 0 10px; }
+.style-detail th, .style-detail td { text-align: left; padding: 4px 12px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.style-detail ol { margin: 4px 0 0; padding-left: 1.4em; }
+.warn { color: var(--danger); }
+.err { color: var(--danger); margin: 8px 0 0; min-height: 1.4em; }
+
+.field { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.field label { flex: 1; }
+.field .hint { display: block; color: var(--muted); font-size: .9rem; }
+.field input[type="text"], .field select {
+  width: 7.5em; min-height: 40px; padding: 4px 10px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--field);
+}
+.field input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--accent); }
+.field input[type="range"] { width: 9em; accent-color: var(--accent); }
+
+.modal { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+.modal-panel { background: var(--panel); color: var(--text); width: 100%; max-width: 680px; border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto; }
+.modal-panel h2 { margin: 0 0 8px; font-family: var(--num); font-size: 1.7rem; }
+.modal-panel input[type="text"], .modal-panel select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--field); font-family: var(--ui); font-size: .95rem; margin-top: 4px; }
+
+.roster-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.roster-row select.roster-preset { flex: 1.2; margin-top: 0; min-height: 40px; }
+.roster-row input[type="text"] { flex: 1.8; margin-top: 0; }
+.roster-row select.roster-type { flex: 1; margin-top: 0; min-height: 40px; }
+
+#flash { position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; background: #fff; transition: opacity .06s; }
+#toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  z-index: 40; background: #222; color: #fff; padding: 10px 16px; border-radius: 8px; max-width: 90vw;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+#toast.show { opacity: 1; }
+
+@media (max-width: 480px) {
+  .stage { padding: 8px 10px 16px; }
+  .speech-name { font-size: clamp(1.5rem, 6vw, 2.2rem); }
+  .time { font-size: clamp(4.5rem, 26vw, 12rem); }
+  .period-text { font-size: clamp(1.4rem, 5vw, 1.9rem); min-height: 2em; }
+  .sbtn { min-height: 44px; font-size: 0.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage, #toast, #flash { transition: none; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <button id="backBtn" class="barbtn" type="button" hidden>&#8249; Back</button>
+    <h1 id="title">Debatekeeper</h1>
+    <nav id="nav" aria-label="Main">
+      <button class="barbtn" type="button" data-go="styles">Styles</button>
+      <button class="barbtn" type="button" data-go="settings">Settings</button>
+      <button class="barbtn" type="button" data-go="about">About</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="vTimer" class="view stage" aria-label="Timer">
+      <div class="stage-inner">
+        <div>
+          <div id="speechName" class="speech-name"></div>
+          <div id="speechPos" class="speech-pos"></div>
+        </div>
+        <div class="stage-mid">
+          <div id="time" class="time" role="timer" aria-live="off">0:00</div>
+          <div id="timeSub" class="time-sub"></div>
+          <div id="periodText" class="period-text" aria-live="polite"></div>
+          <button id="poiBtn" class="poi" type="button" hidden aria-label="Point of information timer">POI</button>
+        </div>
+        <div>
+          <div id="bellsLine" class="bells-line"></div>
+          <div id="nextLine" class="next-line"></div>
+          <div class="ctl-main">
+            <button id="goBtn" class="sbtn go" type="button">Start</button>
+          </div>
+          <div class="ctl-sub">
+            <button id="restartSpeakerBtn" class="sbtn" type="button">Restart speaker</button>
+            <button id="prepBtn" class="sbtn" type="button">Prep time</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="vStyles" class="view page" hidden aria-label="Debate styles">
+      <div class="page-inner">
+        <h2>Debate styles</h2>
+        <p class="lead">Choose the format you are timing. You can import any Debatekeeper format file (.xml) or create your own custom style[cite: 2].</p>
+        <div class="row-actions">
+          <button id="importBtn" class="btn primary" type="button">Import file</button>
+          <button id="pasteBtn" class="btn" type="button">Paste XML</button>
+          <button id="editorBtn" class="btn" type="button">Style editor</button>
+          <input id="importInput" type="file" accept=".xml,text/xml,application/xml" multiple hidden>
+        </div>
+        <div id="importMsg" class="err" role="status"></div>
+        <ul id="styleList" class="styles"></ul>
+      </div>
+    </section>
+
+    <section id="vSettings" class="view page" hidden aria-label="Settings">
+      <div class="page-inner">
+        <h2>Settings</h2>
+
+        <h3>Match data</h3>
+        <div class="field">
+          <label>Clear match progress<span class="hint">Reset times and speakers for the current match</span></label>
+          <button id="clearMatchBtn" class="btn" type="button">Clear match</button>
+        </div>
+
+        <h3>Bells</h3>
+        <div class="field"><label for="sSound">Ring bell</label><input id="sSound" type="checkbox"></div>
+        <div class="field"><label for="sVolume">Volume</label><input id="sVolume" type="range" min="0" max="100" step="5"></div>
+        <div class="field"><label for="sVibrate">Vibrate<span class="hint">Works on phones and tablets that allow it</span></label><input id="sVibrate" type="checkbox"></div>
+        <div class="field"><label for="sFlash">Flash screen white</label><input id="sFlash" type="checkbox"></div>
+        <div class="row-actions"><button id="testBell" class="btn" type="button">Test bell</button></div>
+
+        <h3>Overtime bells</h3>
+        <div class="field"><label for="sOtFirst">First overtime bell<span class="hint">Time after the finish bell, as m:ss or seconds. 0 turns overtime bells off.</span></label><input id="sOtFirst" type="text" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label for="sOtRepeat">Then repeat every<span class="hint">0 rings only once.</span></label><input id="sOtRepeat" type="text" inputmode="numeric" autocomplete="off"></div>
+
+        <h3>Preparation time bells</h3>
+        <div class="field"><label for="sPrepWarn">Warning bell when this much time is left<span class="hint">0 for no warning bell</span></label><input id="sPrepWarn" type="text" inputmode="numeric" autocomplete="off"></div>
+        <div class="field"><label for="sPrepWarnNum">Warning bell count</label><select id="sPrepWarnNum"><option>0</option><option>1</option><option>2</option><option>3</option></select></div>
+        <div class="field"><label for="sPrepFinishNum">Finish bell count</label><select id="sPrepFinishNum"><option>0</option><option>1</option><option>2</option><option>3</option></select></div>
+
+        <h3>Timer</h3>
+        <div class="field"><label for="sCountDown">Count speeches down</label><input id="sCountDown" type="checkbox"></div>
+        <div class="field"><label for="sPrepUp">Count preparation time up</label><input id="sPrepUp" type="checkbox"></div>
+        <div class="field"><label for="sPoi">Point of information timer<span class="hint">Shows a POI button that counts down 15 seconds</span></label><input id="sPoi" type="checkbox"></div>
+        <div class="field"><label for="sShowPrep">Show prep time button<span class="hint">Shows the prep time button on the timer screen</span></label><input id="sShowPrep" type="checkbox"></div>
+        <div class="field"><label for="sAwake">Keep screen on while timing</label><input id="sAwake" type="checkbox"></div>
+
+        <h3>Appearance</h3>
+        <div class="field"><label for="sTheme">Theme</label><select id="sTheme"><option value="auto">Match device</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+        <div class="row-actions"><button id="resetSettings" class="btn" type="button">Restore default settings</button></div>
+      </div>
+    </section>
+
+    <section id="vAbout" class="view page" hidden aria-label="About">
+      <div class="page-inner">
+        <h2>About Debatekeeper</h2>
+        <p>Debatekeeper times speeches in debates and rings bells automatically at the correct times. It supports most parliamentary styles, including British Parliamentary, Australs, World Schools, Asian Parliamentary, American Parliamentary and Canadian Parliamentary[cite: 2].</p>
+        <p>The app rings a bell, vibrates and/or flashes the screen white (or any combination of the three) at bell times. It also rings configurable overtime bells[cite: 2].</p>
+
+        <h3>Using the timer</h3>
+        <p>Press Start to begin a speech. Slide left or right across the timer screen to switch between speeches. Bells ring at the times set by the debate style, and the screen colour changes to show what is happening: green when points of information are allowed, orange after a warning bell, and red once the speech is over time. Stop to pause, Resume to continue. When POIs are allowed, the POI button starts a 15 second countdown. Keyboard: Space starts and stops, and the left and right arrow keys change speech[cite: 2].</p>
+
+        <h3>Credits and licence</h3>
+        <p>The web app made by Temciuc Eduard-Matei member of Ghilotina Debate Club[cite: 2]</p>
+        <p>For any questions or contact, you can find me on <a href="https://www.instagram.com/matei.tem/">instagram</a></p>
+        <p>This is a web version of <a href="https://github.com/czlee/debatekeeper" target="_blank" rel="noopener">Debatekeeper</a>, the Android app by Chuan-Zheng Lee, which is licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU General Public Licence version 3</a>. This page is also released under the GPL-3.0, and its complete source is the HTML of this page[cite: 2].</p>
+        <p>The built-in debate styles are copies of files from the <a href="https://github.com/czlee/debatekeeper-formats" target="_blank" rel="noopener">official formats repository</a> (MIT licence). The bell is synthesised in your browser, because the original recorded bell sounds are not freely distributable. The format file specification is documented in the <a href="https://github.com/czlee/debatekeeper/wiki/Writing-your-own-custom-debate-format-file" target="_blank" rel="noopener">Debatekeeper wiki</a>[cite: 2].</p>
+
+        <h3>Good to know</h3>
+        <p>Browsers may delay timers and bells when this page is in a background tab or the screen is off, so keep the page open and the screen on while timing. Your settings and imported styles are saved in this browser only[cite: 2].</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="flash"></div>
+<div id="toast" role="status"></div>
+
+<div id="pasteModal" class="modal" hidden>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="pasteTitle">
+    <h2 id="pasteTitle">Paste a debate format</h2>
+    <p class="lead">Paste the full XML of a Debatekeeper format file[cite: 2].</p>
+    <textarea id="pasteText" spellcheck="false" aria-label="Format XML" style="min-height: 220px; font-family: ui-monospace, monospace; font-size: 0.85rem;"></textarea>
+    <div id="pasteErr" class="err" role="alert"></div>
+    <div class="row-actions">
+      <button id="pasteOk" class="btn primary" type="button">Import</button>
+      <button id="pasteCancel" class="btn" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="styleEditorModal" class="modal" hidden>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="editorTitle">
+    <h2 id="editorTitle">Custom Style Builder</h2>
+    <p class="lead">Design your debate style with custom timings, POI windows, bells, and speech order.</p>
+    
+    <div class="field">
+      <label for="edName">Style Name</label>
+      <input id="edName" type="text" value="Custom Debate" />
+    </div>
+    <div class="field">
+      <label for="edShort">Short Name</label>
+      <input id="edShort" type="text" value="Custom" />
+    </div>
+    <div class="field">
+      <label for="edPrep">Prep Time Length (m:ss, blank for none)</label>
+      <input id="edPrep" type="text" value="15:00" />
+    </div>
+
+    <h3>Substantive Speech Settings</h3>
+    <div class="field">
+      <label for="edSubLen">Speech Length (m:ss)</label>
+      <input id="edSubLen" type="text" value="7:00" />
+    </div>
+    <div class="field">
+      <label for="edPoiStart">Start of POIs (m:ss, blank if no POIs)</label>
+      <input id="edPoiStart" type="text" value="1:00" />
+    </div>
+    <div class="field">
+      <label for="edPoiEnd">End of POIs / Warning Bell (m:ss)</label>
+      <input id="edPoiEnd" type="text" value="6:00" />
+    </div>
+    <div class="field">
+      <label for="edWarnRings">Warning Bell Count</label>
+      <select id="edWarnRings"><option value="1" selected>1 Ring</option><option value="2">2 Rings</option><option value="3">3 Rings</option></select>
+    </div>
+    <div class="field">
+      <label for="edFinishRings">Finish Bell Count</label>
+      <select id="edFinishRings"><option value="1">1 Ring</option><option value="2" selected>2 Rings</option><option value="3">3 Rings</option></select>
+    </div>
+
+    <h3>Reply Speech Settings (Optional)</h3>
+    <div class="field">
+      <label for="edRepLen">Reply Speech Length (m:ss, blank if none)</label>
+      <input id="edRepLen" type="text" value="4:00" />
+    </div>
+    <div class="field">
+      <label for="edRepWarn">Reply Warning Time (m:ss)</label>
+      <input id="edRepWarn" type="text" value="3:00" />
+    </div>
+
+    <h3>Speeches Sequence / Roster</h3>
+    <p class="lead" style="font-size: 0.9rem; margin-bottom: 8px;">Select from common speech roles or type custom names, then choose their speech type.</p>
+    <div id="rosterContainer" style="margin-bottom: 8px;">
+      <div class="roster-row">
+        <select class="roster-preset" onchange="onRosterPresetChange(this)">
+          <option value="">-- Quick Select Role --</option>
+          <option value="Prime Minister|substantive">Prime Minister</option>
+          <option value="Leader of the Opposition|substantive">Leader of the Opposition</option>
+          <option value="Deputy Prime Minister|substantive">Deputy Prime Minister</option>
+          <option value="Deputy Leader of the Opposition|substantive">Deputy Leader of the Opposition</option>
+          <option value="Member for the Government|substantive">Member for the Government</option>
+          <option value="Member for the Opposition|substantive">Member for the Opposition</option>
+          <option value="Government Whip|substantive">Government Whip</option>
+          <option value="Opposition Whip|substantive">Opposition Whip</option>
+          <option value="1st Proposition|substantive">1st Proposition</option>
+          <option value="1st Opposition|substantive">1st Opposition</option>
+          <option value="2nd Proposition|substantive">2nd Proposition</option>
+          <option value="2nd Opposition|substantive">2nd Opposition</option>
+          <option value="3rd Proposition|substantive">3rd Proposition</option>
+          <option value="3rd Opposition|substantive">3rd Opposition</option>
+          <option value="Opposition Reply|reply">Opposition Reply</option>
+          <option value="Proposition Reply|reply">Proposition Reply</option>
+        </select>
+        <input type="text" class="roster-name" value="Prime Minister">
+        <select class="roster-type"><option value="substantive" selected>Substantive</option><option value="reply">Reply</option></select>
+        <button type="button" class="btn danger" onclick="this.parentElement.remove()">X</button>
+      </div>
+      <div class="roster-row">
+        <select class="roster-preset" onchange="onRosterPresetChange(this)">
+          <option value="">-- Quick Select Role --</option>
+          <option value="Prime Minister|substantive">Prime Minister</option>
+          <option value="Leader of the Opposition|substantive">Leader of the Opposition</option>
+          <option value="Deputy Prime Minister|substantive">Deputy Prime Minister</option>
+          <option value="Deputy Leader of the Opposition|substantive">Deputy Leader of the Opposition</option>
+          <option value="Member for the Government|substantive">Member for the Government</option>
+          <option value="Member for the Opposition|substantive">Member for the Opposition</option>
+          <option value="Government Whip|substantive">Government Whip</option>
+          <option value="Opposition Whip|substantive">Opposition Whip</option>
+          <option value="1st Proposition|substantive">1st Proposition</option>
+          <option value="1st Opposition|substantive">1st Opposition</option>
+          <option value="2nd Proposition|substantive">2nd Proposition</option>
+          <option value="2nd Opposition|substantive">2nd Opposition</option>
+          <option value="3rd Proposition|substantive">3rd Proposition</option>
+          <option value="3rd Opposition|substantive">3rd Opposition</option>
+          <option value="Opposition Reply|reply">Opposition Reply</option>
+          <option value="Proposition Reply|reply">Proposition Reply</option>
+        </select>
+        <input type="text" class="roster-name" value="Leader of the Opposition">
+        <select class="roster-type"><option value="substantive" selected>Substantive</option><option value="reply">Reply</option></select>
+        <button type="button" class="btn danger" onclick="this.parentElement.remove()">X</button>
+      </div>
+      <div class="roster-row">
+        <select class="roster-preset" onchange="onRosterPresetChange(this)">
+          <option value="">-- Quick Select Role --</option>
+          <option value="Prime Minister|substantive">Prime Minister</option>
+          <option value="Leader of the Opposition|substantive">Leader of the Opposition</option>
+          <option value="Deputy Prime Minister|substantive">Deputy Prime Minister</option>
+          <option value="Deputy Leader of the Opposition|substantive">Deputy Leader of the Opposition</option>
+          <option value="Member for the Government|substantive">Member for the Government</option>
+          <option value="Member for the Opposition|substantive">Member for the Opposition</option>
+          <option value="Government Whip|substantive">Government Whip</option>
+          <option value="Opposition Whip|substantive">Opposition Whip</option>
+          <option value="1st Proposition|substantive">1st Proposition</option>
+          <option value="1st Opposition|substantive">1st Opposition</option>
+          <option value="2nd Proposition|substantive">2nd Proposition</option>
+          <option value="2nd Opposition|substantive">2nd Opposition</option>
+          <option value="3rd Proposition|substantive">3rd Proposition</option>
+          <option value="3rd Opposition|substantive">3rd Opposition</option>
+          <option value="Opposition Reply|reply">Opposition Reply</option>
+          <option value="Proposition Reply|reply">Proposition Reply</option>
+        </select>
+        <input type="text" class="roster-name" value="Deputy Prime Minister">
+        <select class="roster-type"><option value="substantive" selected>Substantive</option><option value="reply">Reply</option></select>
+        <button type="button" class="btn danger" onclick="this.parentElement.remove()">X</button>
+      </div>
+      <div class="roster-row">
+        <select class="roster-preset" onchange="onRosterPresetChange(this)">
+          <option value="">-- Quick Select Role --</option>
+          <option value="Prime Minister|substantive">Prime Minister</option>
+          <option value="Leader of the Opposition|substantive">Leader of the Opposition</option>
+          <option value="Deputy Prime Minister|substantive">Deputy Prime Minister</option>
+          <option value="Deputy Leader of the Opposition|substantive">Deputy Leader of the Opposition</option>
+          <option value="Member for the Government|substantive">Member for the Government</option>
+          <option value="Member for the Opposition|substantive">Member for the Opposition</option>
+          <option value="Government Whip|substantive">Government Whip</option>
+          <option value="Opposition Whip|substantive">Opposition Whip</option>
+          <option value="1st Proposition|substantive">1st Proposition</option>
+          <option value="1st Opposition|substantive">1st Opposition</option>
+          <option value="2nd Proposition|substantive">2nd Proposition</option>
+          <option value="2nd Opposition|substantive">2nd Opposition</option>
+          <option value="3rd Proposition|substantive">3rd Proposition</option>
+          <option value="3rd Opposition|substantive">3rd Opposition</option>
+          <option value="Opposition Reply|reply">Opposition Reply</option>
+          <option value="Proposition Reply|reply">Proposition Reply</option>
+        </select>
+        <input type="text" class="roster-name" value="Deputy Leader of the Opposition">
+        <select class="roster-type"><option value="substantive" selected>Substantive</option><option value="reply">Reply</option></select>
+        <button type="button" class="btn danger" onclick="this.parentElement.remove()">X</button>
+      </div>
+    </div>
+    <button type="button" class="btn" id="addRosterRow">+ Add Speech to Roster</button>
+
+    <div id="editorErr" class="err" role="alert"></div>
+    <div class="row-actions" style="margin-top: 20px;">
+      <button id="editorSave" class="btn primary" type="button">Save Custom Style</button>
+      <button id="editorCancel" class="btn" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+var ua = navigator.userAgent || navigator.vendor || window.opera;
+var isMobile = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+var isTablet = /(ipad|tablet|(android(?!.*mobile))|(fennec|kindle|silk|playbook))/i.test(ua.toLowerCase());
+if (isMobile) document.documentElement.classList.add('is-mobile');
+if (isTablet) document.documentElement.classList.add('is-tablet');
+
+var BUILTIN_FILES = [
+['bp.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name xml:lang="en">British Parliamentary</name>
+<name xml:lang="es">Parlamentario Británico</name>
+<version>2</version>
+<languages><language>en</language><language>es</language></languages>
+<info xml:lang="en">
+<region>World</region><level>University</level>
+<used-at>World Universities Debating Championship</used-at>
+<used-at>Campeonato Mundial Universitario de Debate en Español</used-at>
+<description>Four teams of two, 7-minute speeches, POIs allowed</description>
+</info>
+<info xml:lang="es">
+<region>Mundo</region><level>Universidad</level>
+<used-at>World Universities Debating Championship</used-at>
+<used-at>Campeonato Mundial Universitario de Debate en Español</used-at>
+<description>Cuatro equipos de dos oradores, discursos de 7 minutos, los PdI permitidos</description>
+</info>
+<prep-time length="15:00"/>
+<speech-types>
+<speech-type ref="all" length="7:00" first-period="normal">
+<name xml:lang="en">all</name><name xml:lang="es">todos</name>
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="6:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="all"><name xml:lang="en">Prime Minister</name><name xml:lang="es">Primer ministro</name></speech>
+<speech type="all"><name xml:lang="en">Leader of the Opposition</name><name xml:lang="es">Líder de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Deputy Prime Minister</name><name xml:lang="es">Viceprimer ministro</name></speech>
+<speech type="all"><name xml:lang="en">Deputy Leader of the Opposition</name><name xml:lang="es">Vicelíder de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Member for the Government</name><name xml:lang="es">Miembro del gobierno</name></speech>
+<speech type="all"><name xml:lang="en">Member for the Opposition</name><name xml:lang="es">Miembro de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Government Whip</name><name xml:lang="es">Látigo del gobierno</name></speech>
+<speech type="all"><name xml:lang="en">Opposition Whip</name><name xml:lang="es">Látigo de la oposoción</name></speech>
+</speeches>
+</debate-format>`],
+
+['bp5.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name xml:lang="en">British Parliamentary (5 minutes)</name>
+<name xml:lang="es">Parlamentario Británico (5 minutos)</name>
+<short-name xml:lang="en">BP (5 minutes)</short-name>
+<short-name xml:lang="es">BP (5 minutos)</short-name>
+<version>2</version>
+<languages><language>en</language><language>es</language></languages>
+<info xml:lang="en">
+<region>United Kingdom</region><level>University</level>
+<used-at>Various UK IVs/Opens</used-at><used-at>Welsh Novices</used-at>
+<description>Four teams of two, 5-minute speeches, POIs allowed</description>
+</info>
+<info xml:lang="es">
+<region>Reino Unido</region><level>Universidad</level>
+<used-at>Varios torneos en el Reino Unido</used-at><used-at>Welsh Novices</used-at>
+<description>Cuatro equipos de dos oradores, discursos de 5 minutos, los PdI permitidos</description>
+</info>
+<prep-time length="15:00"/>
+<speech-types>
+<speech-type ref="all" length="5:00" first-period="normal">
+<name xml:lang="en">all</name><name xml:lang="es">todos</name>
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="4:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="all"><name xml:lang="en">Prime Minister</name><name xml:lang="es">Primer ministro</name></speech>
+<speech type="all"><name xml:lang="en">Leader of the Opposition</name><name xml:lang="es">Líder de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Deputy Prime Minister</name><name xml:lang="es">Viceprimer ministro</name></speech>
+<speech type="all"><name xml:lang="en">Deputy Leader of the Opposition</name><name xml:lang="es">Vicelíder de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Member for the Government</name><name xml:lang="es">Miembro del gobierno</name></speech>
+<speech type="all"><name xml:lang="en">Member for the Opposition</name><name xml:lang="es">Miembro de la oposoción</name></speech>
+<speech type="all"><name xml:lang="en">Government Whip</name><name xml:lang="es">Látigo del gobierno</name></speech>
+<speech type="all"><name xml:lang="en">Opposition Whip</name><name xml:lang="es">Látigo de la oposoción</name></speech>
+</speeches>
+</debate-format>`],
+
+['australs.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>Australs</name>
+<version>2</version>
+<info>
+<region>Australasia</region><level>University</level>
+<used-at>Australasian Intervarsity Debating Championships</used-at>
+<description>3 vs 3, 8-minute speeches, 4-minute replies, no POIs</description>
+</info>
+<prep-time length="30:00"/>
+<speech-types>
+<speech-type ref="substantive" length="8:00" first-period="normal">
+<bell time="6:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="reply" length="4:00" first-period="normal">
+<bell time="3:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="substantive"><name>1st Proposition</name></speech>
+<speech type="substantive"><name>1st Opposition</name></speech>
+<speech type="substantive"><name>2nd Proposition</name></speech>
+<speech type="substantive"><name>2nd Opposition</name></speech>
+<speech type="substantive"><name>3rd Proposition</name></speech>
+<speech type="substantive"><name>3rd Opposition</name></speech>
+<speech type="reply"><name>Opposition Reply</name></speech>
+<speech type="reply"><name>Proposition Reply</name></speech>
+</speeches>
+</debate-format>`],
+
+['worldschools.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>World Schools</name>
+<version>2</version>
+<info>
+<region>World</region><level>School</level>
+<used-at>World Schools Debating Championships</used-at>
+<description>3 vs 3, 8-minute speeches, 4-minute replies, POIs allowed</description>
+</info>
+<prep-time length="60:00"/>
+<speech-types>
+<speech-type ref="substantive" length="8:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="7:00" number="1" next-period="warning"/>
+<bell time="8:00" number="2" next-period="overtime"/>
+<bell time="8:15" number="3" next-period="overtime"/>
+</speech-type>
+<speech-type ref="reply" length="4:00" first-period="normal">
+<bell time="3:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="substantive"><name>1st Proposition</name></speech>
+<speech type="substantive"><name>1st Opposition</name></speech>
+<speech type="substantive"><name>2nd Proposition</name></speech>
+<speech type="substantive"><name>2nd Opposition</name></speech>
+<speech type="substantive"><name>3rd Proposition</name></speech>
+<speech type="substantive"><name>3rd Opposition</name></speech>
+<speech type="reply"><name>Opposition Reply</name></speech>
+<speech type="reply"><name>Proposition Reply</name></speech>
+</speeches>
+</debate-format>`],
+
+['wsdc-prep.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>World Schools with Prep Times</name>
+<short-name>WSDC with Prep</short-name>
+<version>1</version>
+<info>
+<region>Estonia</region><level>High School</level>
+<used-at>Estonian High School Debate Championships</used-at>
+<description>3 vs 3, 6-minute speeches, 3-minute replies, 1-minute preps, POIs allowed</description>
+</info>
+<prep-time length="30:00"/>
+<speech-types>
+<speech-type ref="substantive" length="6:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="5:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="reply" length="3:00" first-period="normal">
+<bell time="2:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="prep" length="1:00" first-period="normal">
+<bell time="1:00" number="1" next-period="warning"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="substantive"><name>1st Proposition</name></speech>
+<speech type="prep"><name>Opposition Prep</name></speech>
+<speech type="substantive"><name>1st Opposition</name></speech>
+<speech type="prep"><name>Proposition Prep</name></speech>
+<speech type="substantive"><name>2nd Proposition</name></speech>
+<speech type="prep"><name>Opposition Prep</name></speech>
+<speech type="substantive"><name>2nd Opposition</name></speech>
+<speech type="prep"><name>Proposition Prep</name></speech>
+<speech type="substantive"><name>3rd Proposition</name></speech>
+<speech type="prep"><name>Opposition Prep</name></speech>
+<speech type="substantive"><name>3rd Opposition</name></speech>
+<speech type="prep"><name>Opposition Prep</name></speech>
+<speech type="reply"><name>Opposition Leader's Reply</name></speech>
+<speech type="prep"><name>Proposition Prep</name></speech>
+<speech type="reply"><name>Proposition Leader's Reply</name></speech>
+</speeches>
+</debate-format>`],
+
+['asian.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>Asian Parliamentary</name>
+<version>1</version>
+<info>
+<region>Asia</region><level>University</level>
+<used-at>United Asian Debating Championship</used-at>
+<description>3 vs 3, 7-minute speeches, 4-minute replies, POIs allowed</description>
+</info>
+<prep-time length="30:00"/>
+<speech-types>
+<speech-type ref="substantive" length="7:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="6:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="reply" length="4:00" first-period="normal">
+<bell time="3:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="substantive"><name>Prime Minister</name></speech>
+<speech type="substantive"><name>Leader of the Opposition</name></speech>
+<speech type="substantive"><name>Deputy Prime Minister</name></speech>
+<speech type="substantive"><name>Deputy Leader of the Opposition</name></speech>
+<speech type="substantive"><name>Government Whip</name></speech>
+<speech type="substantive"><name>Opposition Whip</name></speech>
+<speech type="reply"><name>Opposition Reply</name></speech>
+<speech type="reply"><name>Government Reply</name></speech>
+</speeches>
+</debate-format>`],
+
+['apda.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>American Parliamentary</name>
+<short-name>APDA</short-name>
+<version>1</version>
+<info>
+<region>United States</region><level>University</level>
+<used-at>American Parliamentary Debate Association</used-at>
+<description>2 vs 2, POIs allowed, PM 7 minutes, LO, MG, MO 8 minutes, LO 4 minutes, PM 5 minutes</description>
+</info>
+<speech-types>
+<speech-type ref="pm-const" length="7:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="6:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="constructive" length="8:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="7:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="lo-rebuttal" length="4:00" first-period="normal">
+<bell time="3:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="pm-rebuttal" length="5:00" first-period="normal">
+<bell time="4:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="pm-const"><name>Prime Minister's Constructive</name></speech>
+<speech type="constructive"><name>Leader of the Opposition's Constructive</name></speech>
+<speech type="constructive"><name>Member of the Proposition</name></speech>
+<speech type="constructive"><name>Member of the Opposition</name></speech>
+<speech type="lo-rebuttal"><name>Leader of the Opposition's Rebuttal</name></speech>
+<speech type="pm-rebuttal"><name>Prime Minister's Rebuttal</name></speech>
+</speeches>
+</debate-format>`],
+
+['canadian.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>Canadian Parliamentary</name>
+<short-name>CP</short-name>
+<version>1</version>
+<info>
+<region>Canada</region><level>University</level>
+<used-at>Canadian National Debating Championship</used-at>
+<description>2 vs 2, POIs allowed, PM, MO, MC 7 minutes, LO 10 minutes, PM 3 minutes</description>
+</info>
+<period-types>
+<period-type ref="canadian.lo-rebuttal">
+<name>Canadian: Rebuttal time</name>
+<display>Rebuttal time</display>
+<default-bgcolor>#0C2F6E</default-bgcolor>
+</period-type>
+</period-types>
+<speech-types>
+<speech-type ref="constructive" length="7:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="6:00" number="1" next-period="normal"/>
+<bell time="7:00" number="0" next-period="canadian.lo-rebuttal"/>
+<bell time="9:00" number="0" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="leader-opp" length="10:00" first-period="normal">
+<bell time="1:00" number="1" next-period="pois-allowed"/>
+<bell time="6:00" number="1" next-period="normal"/>
+<bell time="7:00" number="0" next-period="canadian.lo-rebuttal"/>
+<bell time="9:00" number="0" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="pm-rebuttal" length="3:00" first-period="normal">
+<bell time="2:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="constructive"><name>Prime Minister's Constructive</name></speech>
+<speech type="constructive"><name>Member of the Opposition</name></speech>
+<speech type="constructive"><name>Minister of the Crown</name></speech>
+<speech type="leader-opp"><name>Leader of the Opposition</name></speech>
+<speech type="pm-rebuttal"><name>Prime Minister's Rebuttal</name></speech>
+</speeches>
+</debate-format>`],
+
+['joyntscroll.xml', `<?xml version='1.0' encoding='UTF-8'?>
+<debate-format schema-version="2.2">
+<name>Joynt Scroll</name>
+<version>4</version>
+<info>
+<region>New Zealand</region><level>University</level>
+<used-at>New Zealand Universities Limited Preparation Debating Championships</used-at>
+<description>3 vs 3, 8-minute speeches, 4-minute replies, no POIs</description>
+</info>
+<prep-time length="30:00"/>
+<speech-types>
+<speech-type ref="substantive" length="8:00" first-period="normal">
+<bell time="6:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+<speech-type ref="reply" length="4:00" first-period="normal">
+<bell time="3:00" number="1" next-period="warning"/>
+<bell time="finish" number="2" next-period="overtime"/>
+</speech-type>
+</speech-types>
+<speeches>
+<speech type="substantive"><name>1st Proposition</name></speech>
+<speech type="substantive"><name>1st Opposition</name></speech>
+<speech type="substantive"><name>2nd Proposition</name></speech>
+<speech type="substantive"><name>2nd Opposition</name></speech>
+<speech type="substantive"><name>3rd Proposition</name></speech>
+<speech type="substantive"><name>3rd Opposition</name></speech>
+<speech type="reply"><name>Opposition Reply</name></speech>
+<speech type="reply"><name>Proposition Reply</name></speech>
+</speeches>
+</debate-format>`]
+];
+
+function $(sel, root) { return (root || document).querySelector(sel); }
+
+var store = {
+  get: function (k, d) {
+    try { var v = window.localStorage.getItem(k); return v == null ? d : JSON.parse(v); }
+    catch (e) { return d; }
+  },
+  set: function (k, v) {
+    try { window.localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+  }
+};
+
+function h(tag, props) {
+  var e = document.createElement(tag);
+  if (props) {
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, '');
+      else if (v !== false && v != null) e.setAttribute(k, v);
+    });
+  }
+  for (var i = 2; i < arguments.length; i++) {
+    appendKids(e, arguments[i]);
+  }
+  return e;
+}
+function appendKids(e, c) {
+  if (c == null || c === false) return;
+  if (Array.isArray(c)) { c.forEach(function (x) { appendKids(e, x); }); return; }
+  e.appendChild(c.nodeType ? c : document.createTextNode(String(c)));
+}
+
+function fmtTime(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  var s = sec % 60;
+  return Math.floor(sec / 60) + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function parseTime(str) {
+  var s = String(str == null ? '' : str).trim();
+  if (s === 'finish') return 'finish';
+  var m = /^(\d+):(\d{1,2})$/.exec(s);
+  if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  throw new Error('"' + s + '" is not a valid time.');
+}
+
+function parseLoose(str) {
+  var s = String(str).trim();
+  if (s === '') return 0;
+  try { var t = parseTime(s); return t === 'finish' ? null : t; } catch (e) { return null; }
+}
+
+var BUILTIN_PERIODS = {
+  'normal':       { ref: 'normal',       bg: '#000000', display: '',            pois: false },
+  'pois-allowed': { ref: 'pois-allowed', bg: '#1d7a34', display: 'POIs allowed', pois: true },
+  'warning':      { ref: 'warning',      bg: '#b85200', display: '',            pois: false },
+  'overtime':     { ref: 'overtime',     bg: '#5e0f0f', display: '',            pois: false }
+};
+
+function chooseLang(langs) {
+  if (!langs.length) return '';
+  var prefs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'])
+    .map(function (x) { return String(x).toLowerCase(); });
+  for (var i = 0; i < prefs.length; i++) {
+    var p = prefs[i], pri = p.split('-')[0], j;
+    for (j = 0; j < langs.length; j++) if (langs[j].toLowerCase() === p) return langs[j];
+    for (j = 0; j < langs.length; j++) if (langs[j].toLowerCase().split('-')[0] === pri) return langs[j];
+  }
+  return langs[0];
+}
+function langOf(el) {
+  return el.getAttribute('xml:lang') || el.getAttributeNS('http://www.w3.org/XML/1998/namespace', 'lang') || '';
+}
+function pickEl(els, lang) {
+  if (!els.length) return null;
+  var i;
+  if (lang) {
+    for (i = 0; i < els.length; i++) if (langOf(els[i]) === lang) return els[i];
+    var pri = lang.split('-')[0];
+    for (i = 0; i < els.length; i++) if (langOf(els[i]).split('-')[0] === pri && langOf(els[i])) return els[i];
+  }
+  for (i = 0; i < els.length; i++) if (!langOf(els[i])) return els[i];
+  return els[0];
+}
+function kids(parent, tag) {
+  return Array.prototype.filter.call(parent.children, function (c) { return c.tagName === tag; });
+}
+function kid(parent, tag) { return kids(parent, tag)[0] || null; }
+
+function parseFormat(text) {
+  var doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length) throw new Error('This is not valid XML.');
+  var root = doc.documentElement;
+  if (!root || root.tagName !== 'debate-format') throw new Error('This is not a Debatekeeper format file.');
+  var schema = root.getAttribute('schema-version') || '';
+  if (/^1(\.|$)/.test(schema)) throw new Error('Schema version 1.x is no longer supported.');
+
+  var langsEl = kid(root, 'languages');
+  var langs = langsEl ? kids(langsEl, 'language').map(function (e) { return e.textContent.trim(); }).filter(Boolean) : [];
+  var lang = chooseLang(langs);
+  function txt(p, t) { var e = pickEl(kids(p, t), lang); return e ? e.textContent.trim() : null; }
+
+  var name = txt(root, 'name');
+  if (!name) throw new Error('The format has no <name>.');
+  var shortName = txt(root, 'short-name') || name;
+  var version = parseInt(txt(root, 'version') || '1', 10) || 1;
+
+  var info = { regions: [], levels: [], usedAts: [], description: '' };
+  var infoEl = pickEl(kids(root, 'info'), lang);
+  if (infoEl) {
+    info.regions = kids(infoEl, 'region').map(function (e) { return e.textContent.trim(); });
+    info.levels = kids(infoEl, 'level').map(function (e) { return e.textContent.trim(); });
+    info.usedAts = kids(infoEl, 'used-at').map(function (e) { return e.textContent.trim(); });
+    var dEl = kid(infoEl, 'description');
+    info.description = dEl ? dEl.textContent.trim() : '';
+  }
+
+  var periods = {};
+  Object.keys(BUILTIN_PERIODS).forEach(function (k) { periods[k] = BUILTIN_PERIODS[k]; });
+  var ptEl = kid(root, 'period-types');
+  if (ptEl) kids(ptEl, 'period-type').forEach(function (e) {
+    var ref = e.getAttribute('ref');
+    if (!ref) throw new Error('A <period-type> has no ref attribute.');
+    var disp = pickEl(kids(e, 'display'), lang);
+    var bg = txt(e, 'default-bgcolor') || '#000000';
+    if (!/^#[0-9a-fA-F]{6}$/.test(bg)) bg = '#000000';
+    periods[ref] = { ref: ref, bg: bg, display: disp ? disp.textContent.trim() : '', pois: e.getAttribute('pois-allowed') === 'true' };
+  });
+
+  function parseBells(parent, length) {
+    return kids(parent, 'bell').map(function (b) {
+      var t = parseTime(b.getAttribute('time'));
+      if (t === 'finish') t = length;
+      var n = b.hasAttribute('number') ? parseInt(b.getAttribute('number'), 10) : 1;
+      return { time: t, number: isNaN(n) ? 1 : Math.max(0, n), next: b.getAttribute('next-period') || null };
+    }).sort(function (a, b) { return a.time - b.time; });
+  }
+
+  var speechTypes = {};
+  var order = [];
+  var stsEl = kid(root, 'speech-types');
+  if (!stsEl) throw new Error('The format has no <speech-types>.');
+  kids(stsEl, 'speech-type').forEach(function (e) {
+    var ref = e.getAttribute('ref');
+    if (!ref) throw new Error('A <speech-type> has no ref attribute.');
+    var length = parseTime(e.getAttribute('length'));
+    if (length === 'finish') throw new Error('Speech type "' + ref + '" has an invalid length.');
+    var bells = parseBells(e, length), warn = false;
+    var hasFinish = bells.some(function (b) { return b.time === length; });
+    if (!hasFinish) { bells.push({ time: length, number: 2, next: null }); warn = true; }
+    var nameEl = pickEl(kids(e, 'name'), lang);
+    speechTypes[ref] = { ref: ref, name: nameEl ? nameEl.textContent.trim() : ref, length: length, first: e.getAttribute('first-period') || null, bells: bells, warn: warn };
+    order.push(ref);
+  });
+
+  var speeches = [];
+  var spEl = kid(root, 'speeches');
+  if (!spEl) throw new Error('The format has no <speeches>.');
+  kids(spEl, 'speech').forEach(function (e) {
+    var type = e.getAttribute('type');
+    if (!speechTypes[type]) throw new Error('A speech refers to the unknown speech type "' + type + '".');
+    var n = txt(e, 'name');
+    if (!n) throw new Error('A speech has no <name>.');
+    speeches.push({ type: type, name: n });
+  });
+  if (!speeches.length) throw new Error('The format lists no speeches.');
+
+  var prep = null;
+  var pc = kid(root, 'prep-time-controlled');
+  var pt = kid(root, 'prep-time');
+  if (pc) {
+    var pcl = parseTime(pc.getAttribute('length'));
+    prep = { controlled: true, length: pcl, first: pc.getAttribute('first-period') || null, bells: parseBells(pc, pcl) };
+  } else if (pt) {
+    prep = { controlled: false, length: parseTime(pt.getAttribute('length')) };
+  }
+
+  return { name: name, shortName: shortName, version: version, langs: langs, info: info, periods: periods, speechTypes: speechTypes, typeOrder: order, speeches: speeches, prep: prep };
+}
+
+var DEFAULTS = {
+  sound: true, volume: 80, vibrate: true, flash: false,
+  overtimeFirst: 15, overtimeRepeat: 10,
+  prepWarnAt: 60, prepWarnNum: 1, prepFinishNum: 2,
+  countDown: false, prepCountUp: false, poiTimer: true, showPrepBtn: false, keepAwake: true, theme: 'auto'
+};
+var set = Object.assign({}, DEFAULTS, store.get('dk.settings', {}));
+function saveSettings() { store.set('dk.settings', set); }
+function applyTheme() {
+  if (set.theme === 'light' || set.theme === 'dark') document.documentElement.setAttribute('data-theme', set.theme);
+  else document.documentElement.removeAttribute('data-theme');
+}
+
+var ac = null;
+function audio() {
+  try {
+    if (!ac) { var C = window.AudioContext || window.webkitAudioContext; if (C) ac = new C(); }
+    if (ac && ac.state === 'suspended') ac.resume();
+  } catch (e) { ac = null; }
+  return ac;
+}
+function strike(t0, vol) {
+  var partials = [ [1, 1, 2.3], [2.32, 0.55, 1.5], [4.07, 0.32, 0.9], [6.6, 0.16, 0.5], [9.5, 0.08, 0.3] ];
+  var f0 = 2350;
+  var master = ac.createGain();
+  master.gain.value = vol * 0.38;
+  master.connect(ac.destination);
+  partials.forEach(function (p) {
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f0 * p[0];
+    g.gain.setValueAtTime(p[1], t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + p[2]);
+    o.connect(g); g.connect(master);
+    o.start(t0); o.stop(t0 + p[2] + 0.05);
+  });
+  var len = Math.floor(ac.sampleRate * 0.02);
+  var buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  var src = ac.createBufferSource(), hp = ac.createBiquadFilter(), ng = ac.createGain();
+  src.buffer = buf; hp.type = 'highpass'; hp.frequency.value = 3000; ng.gain.value = 0.5;
+  src.connect(hp); hp.connect(ng); ng.connect(master);
+  src.start(t0);
+}
+function playBells(n) {
+  if (!audio()) return;
+  var vol = Math.max(0, Math.min(1, set.volume / 100));
+  if (vol <= 0) return;
+  var t = ac.currentTime + 0.02;
+  for (var i = 0; i < n; i++) strike(t + i * 0.5, vol);
+}
+function vibrate(n) {
+  if (!navigator.vibrate) return;
+  var pat = [];
+  for (var i = 0; i < n; i++) { if (i) pat.push(250); pat.push(250); }
+  try { navigator.vibrate(pat); } catch (e) {}
+}
+var flashEl = $('#flash');
+function flashScreen(color, n) {
+  flashEl.style.background = color;
+  for (var i = 0; i < n; i++) {
+    (function (i) {
+      setTimeout(function () { flashEl.style.opacity = '1'; }, i * 500);
+      setTimeout(function () { flashEl.style.opacity = '0'; }, i * 500 + 250);
+    })(i);
+  }
+}
+function ring(n) {
+  if (n <= 0) return;
+  if (set.sound) playBells(n);
+  if (set.vibrate) vibrate(n);
+  if (set.flash) flashScreen('#ffffff', n);
+}
+
+var wake = null;
+function requestWake() {
+  if (!set.keepAwake || !('wakeLock' in navigator)) return;
+  try {
+    navigator.wakeLock.request('screen').then(function (l) {
+      wake = l; l.addEventListener('release', function () { if (wake === l) wake = null; });
+    }).catch(function () {});
+  } catch (e) {}
+}
+function releaseWake() {
+  if (wake) { try { wake.release(); } catch (e) {} wake = null; }
+}
+
+var toastTimer = null;
+function toast(msg) {
+  var t = $('#toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
+}
+
+var formats = [];
+var cur = null;
+
+function loadFormats() {
+  formats = [];
+  BUILTIN_FILES.forEach(function (f) {
+    try { formats.push({ id: 'builtin:' + f[0], custom: false, xml: f[1], fmt: parseFormat(f[1]) }); }
+    catch (e) {}
+  });
+  var customs = store.get('dk.custom', []);
+  if (Array.isArray(customs)) customs.forEach(function (c) {
+    try { formats.push({ id: c.id, custom: true, xml: c.xml, fmt: parseFormat(c.xml) }); }
+    catch (e) {}
+  });
+}
+function saveCustoms() {
+  store.set('dk.custom', formats.filter(function (f) { return f.custom; }).map(function (f) { return { id: f.id, xml: f.xml }; }));
+}
+function addCustom(xml) {
+  var fmt = parseFormat(xml);
+  var en = { id: 'custom:' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), custom: true, xml: xml, fmt: fmt };
+  formats.push(en);
+  saveCustoms();
+  return en;
+}
+
+var mode = 'speech';
+var idx = 0;
+var spec = null;
+var running = false, startTs = 0, acc = 0, bellIdx = 0, overAt = Infinity;
+var ps = { bg: '#000000', display: '', pois: false };
+var poi = { running: false, end: 0, done: false, doneTimer: null };
+var speakerTimes = {};
+
+function saveCurrentSpeakerTime() {
+  if (mode === 'speech') {
+    speakerTimes[idx] = elapsedSec();
+    store.set('dk.speakerTimes.' + cur.id, speakerTimes);
+  }
+}
+
+function applyPeriod(ref) {
+  if (!ref || !cur) return;
+  var p = cur.fmt.periods[ref];
+  if (!p) return;
+  ps.bg = p.bg;
+  if (p.display !== undefined) ps.display = p.display;
+  if (p.pois !== null && p.pois !== undefined) ps.pois = p.pois;
+}
+
+function computeSpec() {
+  var f = cur.fmt;
+  if (mode === 'prep' && f.prep) {
+    if (f.prep.controlled) return { title: 'Preparation time', length: f.prep.length, bells: f.prep.bells.slice(), first: f.prep.first || 'normal' };
+    var L = f.prep.length, bells = [];
+    if (set.prepWarnAt > 0 && set.prepWarnAt < L && set.prepWarnNum > 0) bells.push({ time: L - set.prepWarnAt, number: set.prepWarnNum, next: 'warning' });
+    bells.push({ time: L, number: set.prepFinishNum, next: 'overtime' });
+    return { title: 'Preparation time', length: L, bells: bells, first: 'normal' };
+  }
+  var sp = f.speeches[idx], st = f.speechTypes[sp.type];
+  return { title: sp.name, length: st.length, bells: st.bells.slice(), first: st.first || 'normal' };
+}
+
+function elapsedSec() { return (acc + (running ? performance.now() - startTs : 0)) / 1000; }
+function countsDown() { return mode === 'prep' ? !set.prepCountUp : set.countDown; }
+
+function stopPoi() {
+  poi.running = false; poi.done = false;
+  clearTimeout(poi.doneTimer);
+}
+
+function loadSpec() {
+  spec = computeSpec();
+  resetTimer(false);
+}
+
+function resetTimer(clearSavedTime) {
+  stopPoi();
+  running = false;
+  
+  if (clearSavedTime !== false && mode === 'speech') {
+    delete speakerTimes[idx];
+    store.set('dk.speakerTimes.' + cur.id, speakerTimes);
+    acc = 0;
+  } else if (mode === 'speech' && speakerTimes[idx] != null) {
+    acc = speakerTimes[idx] * 1000;
+  } else {
+    acc = 0;
+  }
+  
+  bellIdx = 0;
+  overAt = set.overtimeFirst > 0 ? spec.length + set.overtimeFirst : Infinity;
+  ps = { bg: '#000000', display: '', pois: false };
+  applyPeriod(spec.first);
+  
+  var currentSec = acc / 1000;
+  while (bellIdx < spec.bells.length && spec.bells[bellIdx].time <= currentSec) {
+    var b = spec.bells[bellIdx++];
+    applyPeriod(b.next);
+  }
+
+  releaseWake();
+  render(true);
+}
+
+function startTimer() {
+  audio();
+  running = true; startTs = performance.now();
+  requestWake();
+  render(true);
+}
+
+function pauseTimer() {
+  acc += performance.now() - startTs;
+  running = false;
+  saveCurrentSpeakerTime();
+  releaseWake();
+  render(true);
+}
+
+function tick() {
+  if (!cur || !spec) return;
+  var now = performance.now();
+  if (running) {
+    var e = (acc + now - startTs) / 1000, rang = -1;
+    while (bellIdx < spec.bells.length && spec.bells[bellIdx].time <= e) {
+      var b = spec.bells[bellIdx++];
+      rang = b.number;
+      applyPeriod(b.next);
+    }
+    if (rang > 0) ring(rang);
+    if (e >= spec.length && e >= overAt) {
+      ring(1);
+      var rep = set.overtimeRepeat;
+      if (rep > 0) { while (overAt <= e) overAt += rep; } else overAt = Infinity;
+    }
+  }
+  if (poi.running && now >= poi.end) {
+    poi.running = false; poi.done = true;
+    if (set.vibrate && navigator.vibrate) { try { navigator.vibrate([400]); } catch (err) {} }
+    if (set.flash) flashScreen('#2d6cdf', 1);
+    clearTimeout(poi.doneTimer);
+    poi.doneTimer = setTimeout(function () { poi.done = false; render(true); }, 1500);
+  }
+  render(false);
+}
+
+var els = {
+  stage: $('#vTimer'), name: $('#speechName'), pos: $('#speechPos'), time: $('#time'), sub: $('#timeSub'),
+  period: $('#periodText'), poi: $('#poiBtn'), bells: $('#bellsLine'), next: $('#nextLine'),
+  go: $('#goBtn'),
+  restartSpeakerBtn: $('#restartSpeakerBtn'), clearMatchBtn: $('#clearMatchBtn'), prep: $('#prepBtn')
+};
+var last = {};
+function setText(el, key, val) {
+  if (last[key] !== val) { last[key] = val; el.textContent = val; }
+}
+
+function bellsSummary() {
+  var parts = spec.bells.filter(function (b) { return b.number > 0; }).map(function (b) {
+    return fmtTime(b.time) + (b.number > 1 ? ' \u00d7' + b.number : '');
+  });
+  return parts.length ? 'Bells at ' + parts.join(', ') : 'No bells';
+}
+
+function updatePeriodDisplay(e) {
+  if (!cur) return;
+  var hasPois = spec.bells.some(function(b) { return b.next === 'pois-allowed'; });
+  if (!hasPois) return;
+  var poiStartBell = spec.bells.find(function(b) { return b.next === 'pois-allowed'; });
+  var warnBell = spec.bells.find(function(b) { return b.next === 'warning'; });
+  var startTime = poiStartBell ? poiStartBell.time : 60;
+  var warnTime = warnBell ? warnBell.time : spec.length;
+  
+  if (e < startTime) {
+    ps.display = 'POIs not allowed';
+  } else if (e >= startTime && e < warnTime) {
+    ps.display = 'POIs allowed';
+  } else {
+    ps.display = 'POIs not allowed';
+  }
+}
+
+function checkPoiAllowed(e) {
+  if (!cur) return ps.pois;
+  var poiStartBell = spec.bells.find(function(b) { return b.next === 'pois-allowed'; });
+  if (poiStartBell) {
+    var startTime = poiStartBell.time;
+    var warnTime = spec.bells.find(function(b) { return b.next === 'warning'; });
+    var maxPoiTime = warnTime ? warnTime.time : spec.length;
+    return e >= startTime && e < maxPoiTime;
+  }
+  return ps.pois;
+}
+
+function render(force) {
+  if (!cur || !spec) return;
+  if (force) last = {};
+  var e = elapsedSec(), L = spec.length, over = e >= L, shown;
+  if (countsDown()) {
+    var rem = L - e;
+    shown = rem >= 0 ? fmtTime(Math.ceil(rem)) : '\u2212' + fmtTime(Math.floor(-rem));
+  } else shown = fmtTime(e);
+  
+  if (mode === 'speech') {
+    updatePeriodDisplay(e);
+  }
+
+  setText(els.time, 'time', shown);
+  if (last.over !== over) { last.over = over; els.time.classList.toggle('over', over); }
+  setText(els.sub, 'sub', countsDown() ? 'Length ' + fmtTime(L) : 'of ' + fmtTime(L));
+  setText(els.name, 'name', spec.title);
+  var inPrep = mode === 'prep';
+  setText(els.pos, 'pos', inPrep ? '' : 'Speech ' + (idx + 1) + ' of ' + cur.fmt.speeches.length);
+  setText(els.period, 'period', ps.display || '');
+  setText(els.bells, 'bells', bellsSummary());
+  var sps = cur.fmt.speeches;
+  setText(els.next, 'next', inPrep ? '' : (idx < sps.length - 1 ? 'Next: ' + sps[idx + 1].name : 'Last speech'));
+  if (last.bg !== ps.bg) { last.bg = ps.bg; els.stage.style.backgroundColor = ps.bg; }
+
+  var goText = running ? 'Stop' : (acc > 0 ? 'Resume' : 'Start');
+  setText(els.go, 'go', goText);
+  els.restartSpeakerBtn.disabled = running && acc === 0;
+  els.prep.hidden = !cur.fmt.prep || !set.showPrepBtn;
+  setText(els.prep, 'prepLabel', inPrep ? 'Back to speeches' : 'Prep time');
+
+  var isPoiActivePeriod = checkPoiAllowed(e);
+  var showPoi = set.poiTimer && !inPrep && isPoiActivePeriod;
+  if (els.poi.hidden === showPoi) els.poi.hidden = !showPoi;
+  var poiLabel = 'POI', poiClass = '';
+  if (poi.running) { poiLabel = String(Math.max(0, Math.ceil((poi.end - performance.now()) / 1000))); poiClass = 'running'; }
+  else if (poi.done) { poiLabel = '0'; poiClass = 'done'; }
+  setText(els.poi, 'poi', poiLabel);
+  if (last.poiClass !== poiClass) { last.poiClass = poiClass; els.poi.className = 'poi ' + poiClass; }
+}
+
+els.go.addEventListener('click', function () { if (running) pauseTimer(); else startTimer(); });
+els.restartSpeakerBtn.addEventListener('click', function () {
+  if (running) pauseTimer();
+  resetTimer(true);
+  toast('Speaker time restarted');
+});
+
+var clearMatchBtnEl = $('#clearMatchBtn');
+if (clearMatchBtnEl) {
+  clearMatchBtnEl.addEventListener('click', function () {
+    if (running) pauseTimer();
+    speakerTimes = {};
+    if (cur) store.set('dk.speakerTimes.' + cur.id, {});
+    idx = 0;
+    store.set('dk.idx', 0);
+    if (cur) loadSpec();
+    toast('Match reset');
+  });
+}
+
+// Swipe gestures for speaker navigation
+var touchStartX = 0;
+var touchStartY = 0;
+els.stage.addEventListener('touchstart', function (e) {
+  if (e.touches.length === 1) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }
+}, {passive: true});
+
+els.stage.addEventListener('touchend', function (e) {
+  if (e.changedTouches.length === 1 && mode === 'speech') {
+    var deltaX = e.changedTouches[0].clientX - touchStartX;
+    var deltaY = e.changedTouches[0].clientY - touchStartY;
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaY) < 50) {
+      if (deltaX < 0) {
+        if (!running && cur && idx < cur.fmt.speeches.length - 1) {
+          saveCurrentSpeakerTime();
+          idx++;
+          store.set('dk.idx', idx);
+          loadSpec();
+          toast('Speech ' + (idx + 1) + ': ' + cur.fmt.speeches[idx].name);
+        }
+      } else {
+        if (!running && cur && idx > 0) {
+          saveCurrentSpeakerTime();
+          idx--;
+          store.set('dk.idx', idx);
+          loadSpec();
+          toast('Speech ' + (idx + 1) + ': ' + cur.fmt.speeches[idx].name);
+        }
+      }
+    }
+  }
+}, {passive: true});
+
+els.prep.addEventListener('click', function () {
+  if (running) saveCurrentSpeakerTime();
+  mode = mode === 'prep' ? 'speech' : 'prep';
+  loadSpec();
+});
+els.poi.addEventListener('click', function () {
+  audio();
+  if (poi.running) { stopPoi(); }
+  else { stopPoi(); poi.running = true; poi.end = performance.now() + 15000; }
+  render(true);
+});
+
+document.addEventListener('keydown', function (ev) {
+  if (currentView !== 'timer' || !cur) return;
+  var t = ev.target, tag = t && t.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON') return;
+  if (ev.key === ' ') { ev.preventDefault(); els.go.click(); }
+  else if (ev.key === 'ArrowRight' && !running && idx < cur.fmt.speeches.length - 1) {
+    saveCurrentSpeakerTime(); idx++; store.set('dk.idx', idx); loadSpec();
+  }
+  else if (ev.key === 'ArrowLeft' && !running && idx > 0) {
+    saveCurrentSpeakerTime(); idx--; store.set('dk.idx', idx); loadSpec();
+  }
+});
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible') { tick(); if (running) requestWake(); }
+});
+
+var currentView = 'timer';
+var VIEWS = { timer: '#vTimer', styles: '#vStyles', settings: '#vSettings', about: '#vAbout' };
+var TITLES = { styles: 'Debate styles', settings: 'Settings', about: 'About' };
+function show(view) {
+  currentView = view;
+  Object.keys(VIEWS).forEach(function (k) { $(VIEWS[k]).hidden = k !== view; });
+  $('#backBtn').hidden = view === 'timer';
+  document.querySelectorAll('#nav .barbtn').forEach(function (b) {
+    if (b.getAttribute('data-go') === view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  $('#title').textContent = view === 'timer' ? (cur ? cur.fmt.shortName : 'Debatekeeper') : TITLES[view];
+  if (view === 'styles') renderStyles();
+  if (view === 'timer') render(true);
+}
+document.querySelectorAll('#nav .barbtn').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var go = b.getAttribute('data-go');
+    show(currentView === go ? 'timer' : go);
+  });
+});
+$('#backBtn').addEventListener('click', function () { show('timer'); });
+
+function bellText(b) {
+  return fmtTime(b.time) + (b.number === 0 ? ' (silent)' : ' \u00d7' + b.number);
+}
+function buildDetail(f) {
+  var wrap = h('div');
+  var head = h('tr', null, h('th', { text: 'Speech type' }), h('th', { text: 'Length' }), h('th', { text: 'Bells' }));
+  var rows = f.typeOrder.map(function (ref) {
+    var st = f.speechTypes[ref];
+    return h('tr', null,
+      h('td', { text: st.name }),
+      h('td', { text: fmtTime(st.length) }),
+      h('td', null, st.bells.map(bellText).join(', '), st.warn ? h('span', { class: 'warn', text: ' (no finish bell was defined)' }) : null));
+  });
+  wrap.appendChild(h('table', null, h('thead', null, head), h('tbody', null, rows)));
+  if (f.prep) {
+    wrap.appendChild(h('p', null, 'Preparation time: ' + fmtTime(f.prep.length)));
+  } else {
+    wrap.appendChild(h('p', { text: 'No preparation time is set for this style.' }));
+  }
+  wrap.appendChild(h('p', { text: 'Speeches:' }));
+  wrap.appendChild(h('ol', null, f.speeches.map(function (s) { return h('li', { text: s.name }); })));
+  return wrap;
+}
+
+function renderStyles() {
+  var list = $('#styleList');
+  list.textContent = '';
+  var sorted = formats.slice().sort(function (a, b) { return a.fmt.name.localeCompare(b.fmt.name); });
+  sorted.forEach(function (en) {
+    var f = en.fmt, sel = en === cur;
+    var detail = h('div', { class: 'style-detail', hidden: true }, buildDetail(f));
+    var more = h('button', { class: 'link', type: 'button', 'aria-expanded': 'false' }, 'Details');
+    more.addEventListener('click', function () {
+      var open = detail.hidden;
+      detail.hidden = !open;
+      more.setAttribute('aria-expanded', String(open));
+      more.textContent = open ? 'Hide details' : 'Details';
+    });
+    var meta = f.info.regions.concat(f.info.levels).join(', ');
+    var main = h('button', { class: 'style-main', type: 'button', onclick: function () { selectFormat(en); } },
+      h('span', { class: 'style-name', text: f.name }),
+      meta ? h('span', { class: 'style-meta', text: meta }) : null,
+      f.info.usedAts.length ? h('span', { class: 'style-used', text: 'Used at: ' + f.info.usedAts.join('; ') }) : null,
+      f.info.description ? h('span', { class: 'style-desc', text: f.info.description }) : null);
+    var actions = h('div', { class: 'style-actions' },
+      sel ? h('span', { class: 'badge', text: 'Selected' }) : null,
+      en.custom ? h('span', { class: 'badge plain', text: 'Imported' }) : null,
+      more,
+      en.custom ? h('button', { class: 'link danger', type: 'button', onclick: function () { removeCustom(en); } }, 'Remove') : null);
+    list.appendChild(h('li', { class: sel ? 'sel' : '' }, main, actions, detail));
+  });
+}
+
+function selectFormat(en, quiet) {
+  cur = en;
+  idx = 0; mode = 'speech';
+  speakerTimes = store.get('dk.speakerTimes.' + cur.id, {});
+  store.set('dk.style', en.id);
+  store.set('dk.idx', 0);
+  loadSpec();
+  if (!quiet) { show('timer'); toast('Style: ' + en.fmt.name); }
+}
+function removeCustom(en) {
+  formats = formats.filter(function (f) { return f !== en; });
+  saveCustoms();
+  if (cur === en) { selectFormat(formats[0], true); }
+  renderStyles();
+  toast('Removed ' + en.fmt.name);
+}
+
+function importTexts(items) {
+  var msgs = [], added = null;
+  items.forEach(function (it) {
+    try { added = addCustom(it.text); }
+    catch (e) { msgs.push((it.name ? it.name + ': ' : '') + e.message); }
+  });
+  var box = $('#importMsg');
+  box.textContent = msgs.join(' ');
+  if (added) {
+    renderStyles();
+    toast(items.length > 1 ? 'Imported styles' : 'Imported ' + added.fmt.name);
+  }
+  return msgs.length === 0;
+}
+
+$('#importBtn').addEventListener('click', function () { $('#importInput').click(); });
+$('#importInput').addEventListener('change', function (ev) {
+  var files = Array.prototype.slice.call(ev.target.files || []);
+  if (!files.length) return;
+  Promise.all(files.map(function (f) {
+    return new Promise(function (res) {
+      var r = new FileReader();
+      r.onload = function () { res({ name: f.name, text: String(r.result) }); };
+      r.onerror = function () { res({ name: f.name, text: '' }); };
+      r.readAsText(f);
+    });
+  })).then(function (items) { importTexts(items); ev.target.value = ''; });
+});
+
+var pasteModal = $('#pasteModal');
+function openPaste() {
+  $('#pasteErr').textContent = ''; $('#pasteText').value = '';
+  pasteModal.hidden = false; $('#pasteText').focus();
+}
+function closePaste() { pasteModal.hidden = true; $('#pasteBtn').focus(); }
+$('#pasteBtn').addEventListener('click', openPaste);
+$('#pasteCancel').addEventListener('click', closePaste);
+$('#pasteOk').addEventListener('click', function () {
+  try { var en = addCustom($('#pasteText').value); closePaste(); renderStyles(); $('#importMsg').textContent = ''; toast('Imported ' + en.fmt.name); }
+  catch (e) { $('#pasteErr').textContent = e.message; }
+});
+
+// Custom Style Builder Modal Logic
+var styleEditorModal = $('#styleEditorModal');
+function openStyleEditor() {
+  $('#editorErr').textContent = '';
+  styleEditorModal.hidden = false;
+  $('#edName').focus();
+}
+function closeStyleEditor() {
+  styleEditorModal.hidden = true;
+}
+$('#editorBtn').addEventListener('click', openStyleEditor);
+$('#editorCancel').addEventListener('click', closeStyleEditor);
+
+window.onRosterPresetChange = function(sel) {
+  if (!sel.value) return;
+  var parts = sel.value.split('|');
+  var row = sel.parentElement;
+  row.querySelector('.roster-name').value = parts[0];
+  row.querySelector('.roster-type').value = parts[1];
+  sel.value = "";
+};
+
+$('#addRosterRow').addEventListener('click', function() {
+  var row = document.createElement('div');
+  row.className = 'roster-row';
+  row.innerHTML = '<select class="roster-preset" onchange="onRosterPresetChange(this)"><option value="">-- Quick Select Role --</option><option value="Prime Minister|substantive">Prime Minister</option><option value="Leader of the Opposition|substantive">Leader of the Opposition</option><option value="Deputy Prime Minister|substantive">Deputy Prime Minister</option><option value="Deputy Leader of the Opposition|substantive">Deputy Leader of the Opposition</option><option value="Member for the Government|substantive">Member for the Government</option><option value="Member for the Opposition|substantive">Member for the Opposition</option><option value="Government Whip|substantive">Government Whip</option><option value="Opposition Whip|substantive">Opposition Whip</option><option value="1st Proposition|substantive">1st Proposition</option><option value="1st Opposition|substantive">1st Opposition</option><option value="2nd Proposition|substantive">2nd Proposition</option><option value="2nd Opposition|substantive">2nd Opposition</option><option value="3rd Proposition|substantive">3rd Proposition</option><option value="3rd Opposition|substantive">3rd Opposition</option><option value="Opposition Reply|reply">Opposition Reply</option><option value="Proposition Reply|reply">Proposition Reply</option></select><input type="text" class="roster-name" value="Custom Speech"><select class="roster-type"><option value="substantive" selected>Substantive</option><option value="reply">Reply</option></select><button type="button" class="btn danger" onclick="this.parentElement.remove()">X</button>';
+  $('#rosterContainer').appendChild(row);
+});
+
+$('#editorSave').addEventListener('click', function () {
+  try {
+    var name = $('#edName').value.trim() || 'Custom Debate';
+    var shortName = $('#edShort').value.trim() || name;
+    var prepStr = $('#edPrep').value.trim();
+    var subLen = $('#edSubLen').value.trim() || '7:00';
+    var poiStart = $('#edPoiStart').value.trim();
+    var poiEnd = $('#edPoiEnd').value.trim();
+    var warnRings = $('#edWarnRings').value;
+    var finishRings = $('#edFinishRings').value;
+    var repLen = $('#edRepLen').value.trim();
+    var repWarn = $('#edRepWarn').value.trim() || '3:00';
+
+    var rosterRows = document.querySelectorAll('#rosterContainer .roster-row');
+    if (!rosterRows.length) throw new Error('Please add at least one speech to the roster.');
+
+    var xml = '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n';
+    xml += '<debate-format schema-version="2.2">\n';
+    xml += '<name>' + name.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</name>\n';
+    xml += '<short-name>' + shortName.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</short-name>\n';
+    xml += '<version>1</version>\n';
+
+    if (prepStr) {
+      xml += '<prep-time length="' + prepStr + '"/>\n';
+    }
+
+    xml += '<speech-types>\n';
+    
+    // Substantive speech type
+    xml += '<speech-type ref="substantive" length="' + subLen + '" first-period="normal">\n';
+    if (poiStart) {
+      xml += '<bell time="' + poiStart + '" number="1" next-period="pois-allowed"/>\n';
+    }
+    if (poiEnd) {
+      xml += '<bell time="' + poiEnd + '" number="' + warnRings + '" next-period="warning"/>\n';
+    }
+    xml += '<bell time="finish" number="' + finishRings + '" next-period="overtime"/>\n';
+    xml += '</speech-type>\n';
+
+    // Reply speech type (if specified)
+    if (repLen) {
+      xml += '<speech-type ref="reply" length="' + repLen + '" first-period="normal">\n';
+      xml += '<bell time="' + repWarn + '" number="' + warnRings + '" next-period="warning"/>\n';
+      xml += '<bell time="finish" number="' + finishRings + '" next-period="overtime"/>\n';
+      xml += '</speech-type>\n';
+    }
+
+    xml += '</speech-types>\n';
+    xml += '<speeches>\n';
+
+    rosterRows.forEach(function(r) {
+      var sName = r.querySelector('.roster-name').value.trim() || 'Speech';
+      var sType = r.querySelector('.roster-type').value;
+      xml += '<speech type="' + sType + '"><name>' + sName.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</name></speech>\n';
+    });
+
+    xml += '</speeches>\n';
+    xml += '</debate-format>';
+
+    var en = addCustom(xml);
+    closeStyleEditor();
+    renderStyles();
+    selectFormat(en);
+    toast('Created and selected ' + en.fmt.name);
+  } catch (e) {
+    $('#editorErr').textContent = e.message;
+  }
+});
+
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape') {
+    if (!pasteModal.hidden) closePaste();
+    if (!styleEditorModal.hidden) closeStyleEditor();
+  }
+});
+
+function bindCheck(id, key, after) {
+  var el = $(id);
+  el.checked = !!set[key];
+  el.addEventListener('change', function () { set[key] = el.checked; saveSettings(); if (after) after(); });
+}
+function bindTime(id, key) {
+  var el = $(id);
+  el.value = set[key] ? fmtTime(set[key]) : '0';
+  el.addEventListener('change', function () {
+    var v = parseLoose(el.value);
+    if (v == null) { el.value = set[key] ? fmtTime(set[key]) : '0'; toast('Enter a time as m:ss or seconds'); return; }
+    set[key] = v; el.value = v ? fmtTime(v) : '0'; saveSettings(); afterSettings();
+  });
+}
+function bindSelectNum(id, key) {
+  var el = $(id);
+  el.value = String(set[key]);
+  el.addEventListener('change', function () { set[key] = parseInt(el.value, 10); saveSettings(); afterSettings(); });
+}
+function afterSettings() {
+  if (cur && !running && acc === 0) { spec = computeSpec(); resetTimer(false); }
+  else if (cur) { spec = computeSpec(); }
+}
+function initSettings() {
+  bindCheck('#sSound', 'sound');
+  bindCheck('#sVibrate', 'vibrate', function () { if ($('#sVibrate').checked) vibrate(1); });
+  bindCheck('#sFlash', 'flash', function () { if ($('#sFlash').checked) flashScreen('#ffffff', 1); });
+  bindCheck('#sCountDown', 'countDown', function () { render(true); });
+  bindCheck('#sPrepUp', 'prepCountUp', function () { render(true); });
+  bindCheck('#sPoi', 'poiTimer', function () { render(true); });
+  bindCheck('#sShowPrep', 'showPrepBtn', function () { render(true); });
+  bindCheck('#sAwake', 'keepAwake', function () { if (!set.keepAwake) releaseWake(); else if (running) requestWake(); });
+  var vol = $('#sVolume'); vol.value = set.volume;
+  vol.addEventListener('input', function () { set.volume = parseInt(vol.value, 10); saveSettings(); });
+  bindTime('#sOtFirst', 'overtimeFirst'); bindTime('#sOtRepeat', 'overtimeRepeat');
+  bindTime('#sPrepWarn', 'prepWarnAt');
+  bindSelectNum('#sPrepWarnNum', 'prepWarnNum'); bindSelectNum('#sPrepFinishNum', 'prepFinishNum');
+  var theme = $('#sTheme'); theme.value = set.theme;
+  theme.addEventListener('change', function () { set.theme = theme.value; saveSettings(); applyTheme(); });
+  $('#testBell').addEventListener('click', function () { audio(); playBells(1); if (set.vibrate) vibrate(1); if (set.flash) flashScreen('#ffffff', 1); });
+  $('#resetSettings').addEventListener('click', function () {
+    set = Object.assign({}, DEFAULTS); saveSettings(); applyTheme();
+    ['#sSound', '#sVibrate', '#sFlash', '#sCountDown', '#sPrepUp', '#sPoi', '#sShowPrep', '#sAwake'].forEach(function (id) {
+      var key = { '#sSound': 'sound', '#sVibrate': 'vibrate', '#sFlash': 'flash', '#sCountDown': 'countDown', '#sPrepUp': 'prepCountUp', '#sPoi': 'poiTimer', '#sShowPrep': 'showPrepBtn', '#sAwake': 'keepAwake' }[id];
+      $(id).checked = !!set[key];
+    });
+    $('#sVolume').value = set.volume;
+    $('#sOtFirst').value = fmtTime(set.overtimeFirst); $('#sOtRepeat').value = fmtTime(set.overtimeRepeat);
+    $('#sPrepWarn').value = fmtTime(set.prepWarnAt);
+    $('#sPrepWarnNum').value = String(set.prepWarnNum); $('#sPrepFinishNum').value = String(set.prepFinishNum);
+    $('#sTheme').value = set.theme;
+    afterSettings(); toast('Settings restored');
+  });
+}
+
+applyTheme();
+initSettings();
+loadFormats();
+var savedId = store.get('dk.style', 'builtin:worldschools.xml');
+cur = formats.filter(function (f) { return f.id === savedId; })[0] || formats[0] || null;
+if (cur) {
+  speakerTimes = store.get('dk.speakerTimes.' + cur.id, {});
+  var savedIdx = store.get('dk.idx', 0);
+  idx = (typeof savedIdx === 'number' && savedIdx >= 0 && savedIdx < cur.fmt.speeches.length) ? savedIdx : 0;
+  loadSpec();
+  show('timer');
+  setInterval(tick, 50);
+} else {
+  $('#title').textContent = 'Debatekeeper';
+  $('#speechName').textContent = 'No debate styles available';
+}
+})();
+</script>
+</body>
+</html>
